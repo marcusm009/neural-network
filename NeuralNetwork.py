@@ -1,6 +1,8 @@
 from random import randint
 import numpy as np
 from Layer import Layer
+import collections
+import itertools
 
 class NeuralNetwork:
 
@@ -12,7 +14,6 @@ class NeuralNetwork:
         layer = Layer(self.num_layers, size, bias)
 
         ### Initialize theta of the last layer ###
-
         # Checks to see if there is a previous layer
         if self.num_layers > 0:
             # Uses information about new layer to initialize theta
@@ -23,26 +24,65 @@ class NeuralNetwork:
         self.num_layers += 1
 
     def predict(self, x):
+        # Calculate training size (m) and the feature size (n)
+        if x.ndim == 1:
+            n = x.size
+        else:
+            n,m = X.shape
 
+        # Check to make sure feature size matches up with first layer size
+        if n != self.layers[0].size:
+            print("Error! Dimension of feature vector (n=" + str(n) +") doesn't match dimension of input layer (n=" + str(self.layers[0].size) + ").")
+            return
+
+        return self.forward_prop(x)[-1]
+
+    def train(self, X, y, learning_rate=0.1, iterations=10000, grad_check=False):
+        # Calculate training size (m) and the feature size (n)
+        m,n = X.shape
+
+        # Check to make sure feature size matches up with first layer size
+        if n != self.layers[0].size:
+            print("Error! Dimension of feature vector (n=" + str(n) +") doesn't match dimension of input layer (n=" + str(self.layers[0].size) + ").")
+            return
+
+        for i in range(iterations):
+            activations = self.forward_prop(X)
+            grads = self.backprop(activations, y)
+            print("Calculated grads: " + str(grads))
+            if grad_check:
+                self.check_gradient(X, y, activations, grads)
+            self.update_theta(grads, learning_rate)
+            self.display()
+            #print("Cost: " + self.cost(X, y))
+
+    def forward_prop(self, x):
+        activations = []
+        activations.append(x)
         # Loop through subsequent layers and return output
         for layer in self.layers:
-            layer.a = x
-            x = layer.fire()
+            layer.a = activations[-1]
+            #self.a.append(layer.a)
+            activations.append(layer.fire())
 
-        # Return output of final layer
-        return x
+        # Return the activations
+        return activations
 
-    def train(self, X, y):
+    def backprop(self, activations, y):
         # Calculate delta of last layer
         delta = []
-        prediction = self.predict(X)
+        m,n = activations[0].shape
+        prediction = activations[-1]
         delta.append(prediction - y)
 
         # Calculate delta of previous layers
         l = self.num_layers - 2
+
+        #for layer in reversed(self.layers[:self.num_layers - 2]):
+            #delta.append(np.multiply(delta[-1].dot(layer.theta.T),sigmoid_der(layer)))
         while l > 0:
             d = np.transpose(self.layers[l].theta)
-            prod = np.dot(delta[len(delta) - 1], d)
+            prod = np.dot(delta[-1], d)
             g_prime = np.multiply(self.layers[l].a, 1 - self.layers[l].a)
             delta.append(np.multiply(prod, g_prime))
             l -= 1
@@ -52,48 +92,38 @@ class NeuralNetwork:
         # Calculate the derivatives of the cost function
         D = []
         for i in range(self.num_layers - 1):
-            D.append(np.dot(np.transpose(self.layers[i].a), delta[i]))
-
+            D.append(self.layers[i].a.T.dot(delta[i]) / m)
         return D
+
+    def update_theta(self, grads, learning_rate):
+        for i, layer in enumerate(self.layers):
+            # If i is the last layer, don't update theta
+            if i == self.num_layers - 1:
+                break
+            layer_grad = grads[i]
+            if self.layers[i+1].has_bias:
+                layer_grad = layer_grad[:,1:]
+            layer.theta += -1*learning_rate*layer_grad
+
+    def check_gradient(self, X, y, epsilon=0.0001):
+        l = self.num_layers - 1
+        for layer in self.layers[:l]:
+            layer.theta -= epsilon
+        cost1 = self.cost(X, y)
+        for layer in self.layers[:l]:
+            layer.theta += 2*epilon
+        cost2 = self.cost(X,y)
+        for layer in self.layers[:l]:
+            layer.theta += epsilon
+        grad_approx = (cost2 - cost1)/(2*epsilon)
+        return grad_approx
 
     def cost(self, X, y):
         m = len(X) + 1
-        cost = (-1/m)*np.sum(np.multiply(y, np.log(self.predict(X))) + np.multiply((1 - y), np.log(1 - self.predict(X))))
+        cost = (-1/m)*np.sum(np.multiply(y, np.log(self.forward_prop(X))) + np.multiply((1 - y), np.log(1 - self.forward_prop(X))))
         return cost
 
     def display(self):
         print("="*20)
         for layer in self.layers:
             layer.display()
-
-'''
-    ## Experimental ##
-
-    def add_layer(self, size, bias="True"):
-        # Add the bias
-        if bias:
-            temp = np.concatenate((np.array([1]), np.zeros(size)))
-            size += 1
-        else:
-            temp = np.zeros(size)
-
-        # Expand dimensions to make dim x 1
-        new_row = np.expand_dims(temp, 1)
-
-        # Add the attribute if the nn doesn't have any layers
-        if hasattr(self, 'a') == False:
-            self.a = new_row
-            self.max_layer_size = size
-            self.num_layers = 1
-            return
-
-        # Checks for reshapes
-        if size > self.max_layer_size:
-            self.a = np.concatenate((self.a, np.zeros((self.num_layers, size - self.max_layer_size))))
-        elif size < self.max_layer_size:
-            new_row = np.concatenate((new_row, np.zeros(self.max_layer_size - size)))
-
-        # Adds new layer and raises layer count
-        self.a = np.hstack((self.a, new_row))
-        self.num_layers += 1
-'''
