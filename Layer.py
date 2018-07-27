@@ -1,5 +1,7 @@
 import numpy as np
 
+INITIAL_WEIGHT = 0.25
+
 class Layer:
 
     def __init__(self, layer_number, size, bias=True):
@@ -23,9 +25,9 @@ class Layer:
     def initialize_theta(self, size):
         self.next_size = size
         if self.has_bias:
-            self.theta = np.random.rand(self.size + 1, self.next_size)
+            self.theta = INITIAL_WEIGHT*np.random.rand(self.size + 1, self.next_size)
         else:
-            self.theta = np.random.rand(self.size, self.next_size)
+            self.theta = INITIAL_WEIGHT*np.random.rand(self.size, self.next_size)
 
     def fire(self):
         #print("Layer " + str(self.layer_number) + ": Fired!")

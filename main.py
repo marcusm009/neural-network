@@ -24,7 +24,7 @@ def main():
 
     max = np.amax(X_train)
 
-    #X_train /= max
+    X_train /= max
     #print(X)
 
     nn = NeuralNetwork()
@@ -42,19 +42,21 @@ def main():
     #nn.display()
 
     #nn.display()
-    error = nn.train(X_train, T_train, iterations=20, learning_rate=0.1)
-    prediction = nn.predict(X_train[55,:])
-    nn.display()
-    print(prediction)
-    print(T_train[55,:])
+
+    error = nn.train(X_train, T_train, iterations=1000, learning_rate=0.25)
+    #prediction = nn.predict(X_train[38,:])
+    #print("Prediction: " + str(prediction))
+    #print("Actual: " + str(T_train[38,:]))
     #print("Approx grads: " + str(nn.check_gradient(X_train, T_train)))
+    predictions = nn.predict(X_test)
 
-    #cost = nn.cost(test, test_y)
-    #nn.display()
+    right = 0
+    for i, prediction in enumerate(predictions.argmax(axis=1)):
+        if prediction == T_test.argmax(axis=1)[i]:
+            right += 1
+    accuracy = right/predictions.argmax(axis=1).size
 
-    #print(error)
-    #print(cost)
-
+    print("Accuracy: " + str(accuracy))
 
 
 

@@ -28,12 +28,12 @@ class NeuralNetwork:
         if x.ndim == 1:
             n = x.size
         else:
-            n,m = X.shape
+            n,m = x.shape
 
         # Check to make sure feature size matches up with first layer size
-        if n != self.layers[0].size:
-            print("Error! Dimension of feature vector (n=" + str(n) +") doesn't match dimension of input layer (n=" + str(self.layers[0].size) + ").")
-            return
+        # if n != self.layers[0].size:
+        #     print("Error! Dimension of feature vector (n=" + str(n) +") doesn't match dimension of input layer (n=" + str(self.layers[0].size) + ").")
+        #     return
 
         return self.forward_prop(x)[-1]
 
@@ -47,14 +47,16 @@ class NeuralNetwork:
             return
 
         for i in range(iterations):
+            self.display()
             activations = self.forward_prop(X)
             grads = self.backprop(activations, y)
-            print("Calculated grads: " + str(grads))
+            print("Iteration: " + str(i))
+            print("Cost: " + str(self.cost(X, y)))
+            #print("Calculated grads: " + str(grads))
             if grad_check:
-                self.check_gradient(X, y, activations, grads)
+                grad_approx = self.check_gradient(X, y)
+                print("Grad approx: " + str(grad_approx))
             self.update_theta(grads, learning_rate)
-            self.display()
-            #print("Cost: " + self.cost(X, y))
 
     def forward_prop(self, x):
         activations = []
@@ -109,19 +111,22 @@ class NeuralNetwork:
         l = self.num_layers - 1
         for layer in self.layers[:l]:
             layer.theta -= epsilon
-        cost1 = self.cost(X, y)
+        cost1 = self.J(X, y)
         for layer in self.layers[:l]:
-            layer.theta += 2*epilon
-        cost2 = self.cost(X,y)
+            layer.theta += 2*epsilon
+        cost2 = self.J(X,y)
         for layer in self.layers[:l]:
             layer.theta += epsilon
         grad_approx = (cost2 - cost1)/(2*epsilon)
         return grad_approx
 
     def cost(self, X, y):
+        return np.sum(self.J(X,y))
+
+    def J(self, X, y):
         m = len(X) + 1
-        cost = (-1/m)*np.sum(np.multiply(y, np.log(self.forward_prop(X))) + np.multiply((1 - y), np.log(1 - self.forward_prop(X))))
-        return cost
+        J = (-1/m)*np.multiply(y, np.log(self.predict(X)) + np.multiply((1 - y), np.log(1 - self.predict(X))))
+        return J
 
     def display(self):
         print("="*20)
