@@ -10,6 +10,7 @@ class Layer:
         self.size = size # The size of the non-bias neurons
         self.a = np.zeros(size)
 
+    # An iterator to loop through all thetas (Unused)
     def __iter__(self):
         n = self.size
         if self.has_bias:
@@ -22,6 +23,8 @@ class Layer:
             yield None
             return
 
+    # Initializes theta randomly, taking into account the initial weight constant and the
+    # bias unit
     def initialize_theta(self, size):
         self.next_size = size
         if self.has_bias:
@@ -30,29 +33,19 @@ class Layer:
             self.theta = INITIAL_WEIGHT*np.random.rand(self.size, self.next_size)
 
     def fire(self):
-        #print("Layer " + str(self.layer_number) + ": Fired!")
 
         # Fires normally by returning g(theta*a')
         if hasattr(self, 'theta'):
-            # print(self.a.shape)
-            # print(self.theta.shape)
             return self.sigmoid(np.dot(self.a, self.theta))
         # Fires abnormally by just returning a (usually happens on last layer)
         else:
             return self.a
 
-    def input_delta(self, output_delta):
-        return np.multiply(self.sigmoid_der(self.a),output_delta)
-
-    def grad(self, X, output_delta):
-        JW = np.dot(X.T, output_delta)
-        Jb = np.sum(output_delta, axis=0)
-        return [g for g in itertools.chain(np.nditer(JW), np.nditer(Jb))]
-
     @property
     def a(self):
         return self.__a
 
+    # A setter that takes into account the bias unit
     @a.setter
     def a(self, a):
         # m is the number of training examples
@@ -64,6 +57,7 @@ class Layer:
         # Transforms to column vector
         self.__a = a
 
+    # Sigmoid and derivative of sigmoid functions for utility purposes
     def sigmoid(self, z):
         return 1 / (1 + np.exp(-z))
 
