@@ -1,6 +1,6 @@
 import numpy as np
 
-INITIAL_WEIGHT = 0.25
+INITIAL_WEIGHT = 0.1
 
 class Layer:
 
@@ -11,17 +11,17 @@ class Layer:
         self.a = np.zeros(size)
 
     # An iterator to loop through all thetas (Unused)
-    def __iter__(self):
-        n = self.size
-        if self.has_bias:
-            n += 1
-        if hasattr(self, 'theta'):
-            for i in range(n):
-                for j in range(self.next_size):
-                    yield self.theta[i,j]
-        else:
-            yield None
-            return
+    # def __iter__(self):
+    #     n = self.size
+    #     if self.has_bias:
+    #         n += 1
+    #     if hasattr(self, 'theta'):
+    #         for i in range(n):
+    #             for j in range(self.next_size):
+    #                 yield self.get_theta_at_index(i,j), lambda y: self.set_theta_at_index(i, j, y)
+    #     else:
+    #         yield None
+    #         return
 
     # Initializes theta randomly, taking into account the initial weight constant and the
     # bias unit
@@ -56,6 +56,13 @@ class Layer:
             a = np.concatenate((np.ones((m,1)),a),axis=1)
         # Transforms to column vector
         self.__a = a
+
+    # Used with the lambda function in the "theta_unrolled" function in nn
+    # def set_theta_at_index(self, i, j, value):
+    #     self.theta[i,j] = value
+    #
+    # def get_theta_at_index(self, i, j):
+    #     return self.theta[i,j]
 
     # Sigmoid and derivative of sigmoid functions for utility purposes
     def sigmoid(self, z):

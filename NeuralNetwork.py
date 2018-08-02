@@ -5,6 +5,8 @@ import collections
 import itertools
 import pickle
 
+np.set_printoptions(precision=8)
+
 class NeuralNetwork:
 
     def __init__(self):
@@ -67,26 +69,38 @@ class NeuralNetwork:
             print("If you wish to save anyways, pass in a lower 'min_acc' value or pass in 'check=False'.")
 
     # The main function for training the model
-    def train(self, X, y, learning_rate=0.1, iterations=1000, grad_check=False):
+    def train(self, X, y, learning_rate=0.1, epochs=1, grad_check=False, batch_size=10):
         # Calculate training size (m) and the feature size (n)
         m,n = X.shape
+
+        # Initialize list of costs for plotting
+        costs = []
 
         # Check to make sure feature size matches up with first layer size
         if n != self.layers[0].size:
             print("Error! Dimension of feature vector (n=" + str(n) +") doesn't match dimension of input layer (n=" + str(self.layers[0].size) + ").")
             return
 
-        for i in range(iterations):
-            self.display()
-            activations = self.forward_prop(X)
-            grads = self.backprop(activations, y)
-            print("Iteration: " + str(i))
-            print("Cost: " + str(self.cost(X, y)))
-            #print("Calculated grads: " + str(grads))
+        for i in range(epochs):
+            for batch in NeuralNetwork.iterate_batches(X, y, batch_size):
+                X_batch, y_batch = batch
+                activations = self.forward_prop(X_batch)
+                grads = self.backprop(activations, y_batch)
+                self.update_theta(grads, learning_rate)
+
+                # Append cost of this iteration to list
+                costs.append(self.cost(X_batch, y_batch))
+
             if grad_check:
-                grad_approx = self.check_gradient(X, y)
-                print("Grad approx: " + str(grad_approx))
-            self.update_theta(grads, learning_rate)
+                activations = self.forward_prop(X)
+                grads = self.backprop(activations, y)
+                grads_approx = self.check_gradient(X, y, (1,0,0))
+                print("Grad approx: " + str(grads_approx))
+                print("Your grad: " + str(grads))
+
+            self.display()
+
+        return costs
 
     # Function that performs forward propagation
     def forward_prop(self, x):
@@ -133,9 +147,27 @@ class NeuralNetwork:
         D = []
         for i in range(self.num_layers - 1):
             p_d_theta = self.layers[i].a.T.dot(delta[i]) / m
-            print("partial " + str(i) + ": " + str(p_d_theta.shape))
             D.append(p_d_theta)
         return D
+
+    def iterate_batches(X, y, batch_size, shuffle=True):
+        # Asserts that the number of training examples matches up with its output
+        assert X.shape[0] == y.shape[0]
+
+        # Shuffle the training examples
+        if shuffle:
+            indices = np.arange(X.shape[0])
+            np.random.shuffle(indices)
+
+        # Loop through all training examples, with a step of batch size
+        for i_start in range(0, X.shape[0] - batch_size + 1, batch_size):
+            # Shuffle using the indices if they was defined or the slice function
+            if shuffle:
+                excerpt = indices[i_start:i_start + batch_size]
+            else:
+                excerpt = slice(i_start, i_start + batch_size)
+            # Yield the X and y slices to form the batch
+            yield X[excerpt], y[excerpt]
 
     # Updates thetas of all layers
     def update_theta(self, grads, learning_rate):
@@ -144,35 +176,40 @@ class NeuralNetwork:
             if i == self.num_layers - 1:
                 break
 
-            # Update theta according to layer grad
-            # Potential cause of layer BUG
             layer_grad = grads[i]
             if self.layers[i+1].has_bias:
                 layer_grad = layer_grad[:,1:]
             layer.theta += -1*learning_rate*layer_grad
 
     # TODO: Fix gradient checking algorithm
-    def check_gradient(self, X, y, epsilon=0.0001):
-        l = self.num_layers - 1
-        for layer in self.layers[:l]:
-            layer.theta -= epsilon
-        cost1 = self.J(X, y)
-        for layer in self.layers[:l]:
-            layer.theta += 2*epsilon
-        cost2 = self.J(X,y)
-        for layer in self.layers[:l]:
-            layer.theta += epsilon
+    def check_gradient(self, X, y, idx, epsilon=0.0000001):
+        self.layers[idx[0]].theta[idx[1],idx[2]] -= epsilon
+        cost1 = self.cost(X, y)
+
+        self.layers[idx[0]].theta[idx[1],idx[2]] += 2*epsilon
+        cost2 = self.cost(X, y)
+
+        self.layers[idx[0]].theta[idx[1],idx[2]] += epsilon
         grad_approx = (cost2 - cost1)/(2*epsilon)
         return grad_approx
 
-    # TODO: Fix cost function
-    def cost(self, X, y):
-        return np.sum(self.J(X,y))
+    # A bit of a hacky way to get and set every theta in an "unrolled" fashion
+    # def theta_unrolled(self):
+    #     for layer in self.layers:
+    #         n = layer.size
+    #         if layer.has_bias:
+    #             n += 1
+    #         if hasattr(layer, 'theta'):
+    #             for i in range(n):
+    #                 for j in range(layer.next_size):
+    #                     # Returns a tuple of lambda functions representing a getter and setter
+    #                     yield lambda _: layer.get_theta_at_index(i, j), lambda y: layer.set_theta_at_index(i, j, y)
 
-    def J(self, X, y):
+    # TODO: Clean up cost function
+    def cost(self, X, y):
         m = len(X) + 1
-        J = (-1/m)*np.multiply(y, np.log(self.predict(X)) + np.multiply((1 - y), np.log(1 - self.predict(X))))
-        return J
+        cost = (-1/m)*np.sum(np.multiply(y, np.log(self.predict(X)) + np.multiply((1 - y), np.log(1 - self.predict(X)))))
+        return cost
 
     def display(self):
         print("="*20)

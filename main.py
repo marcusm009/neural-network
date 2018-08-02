@@ -4,11 +4,14 @@ from NeuralNetwork import NeuralNetwork
 import matplotlib.pyplot as plt
 
 #np.random.seed(1)
-from sklearn import datasets, cross_validation, metrics # data and evaluation utils
+from sklearn import datasets, metrics # data and evaluation utils
 from sklearn.model_selection import train_test_split
 from matplotlib.colors import colorConverter, ListedColormap # some plotting functions
 import itertools
 import collections
+
+np.set_printoptions(precision=3)
+
 
 
 def main():
@@ -29,24 +32,26 @@ def main():
     # Creates neural network
     nn = NeuralNetwork()
 
-    #TODO: Fix gradient descent when total_layers > 3
+    #TODO: Add regularization term
 
     # Adds the layers to the neural network
     nn.add_layer(64, bias=True)
     nn.add_layer(50, bias=True)
-    # nn.add_layer(10, bias=True)
+    nn.add_layer(50, bias=True)
     nn.add_layer(10, bias=False)
 
 
     # Trains the model
-    nn.train(X_train, y_train, iterations=300, learning_rate=0.5)
+    costs = nn.train(X_train, y_train, epochs=100, learning_rate=0.25, batch_size=10)
 
     # Predicts from the test set and calculates the accuracy
     predictions = nn.predict(X_test)
-    print(predictions.shape)
-    print(y_test.shape)
     accuracy = nn.calc_accuracy(y_test)
-    nn.save("l1", min_acc=0.95)
+    #nn.save("l1", min_acc=0.95)
+
+    # Plots
+    plt.plot(costs)
+    plt.show()
 
     # Loads a pre-trained model and uses it to predict
     # nn.load("l1")
