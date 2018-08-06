@@ -41,6 +41,24 @@ class Layer:
         else:
             return self.a
 
+    def iter_theta(self):
+        # An iterator to loop through all thetas (Unused)
+        n = self.size
+        if self.has_bias:
+            n += 1
+        if hasattr(self, 'theta'):
+            for i in range(n):
+                for j in range(self.next_size):
+                    yield self.theta[i,j]
+        else:
+            yield None
+
+    def get_regularization(self):
+        regularization = np.copy(self.theta)
+        if self.has_bias:
+            regularization[:,0] = np.zeros(regularization.shape[0])
+        return regularization
+
     @property
     def a(self):
         return self.__a

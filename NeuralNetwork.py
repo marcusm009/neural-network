@@ -5,7 +5,7 @@ import collections
 import itertools
 import pickle
 
-np.set_printoptions(precision=8)
+#np.set_printoptions(precision=8)
 
 class NeuralNetwork:
 
@@ -50,7 +50,7 @@ class NeuralNetwork:
 
     # Loads from a file
     def load(self, name):
-        file = open(name + ".pckl", 'rb')
+        file = open(name + ".pckl", "rb")
         new_layers = pickle.load(file)
         file.close()
         self.layers = new_layers
@@ -69,7 +69,7 @@ class NeuralNetwork:
             print("If you wish to save anyways, pass in a lower 'min_acc' value or pass in 'check=False'.")
 
     # The main function for training the model
-    def train(self, X, y, learning_rate=0.1, epochs=1, grad_check=False, batch_size=10):
+    def train(self, X, y, learning_rate=0.1, epochs=1, grad_check=False, batch_size=10, regularization_weight=0, view=False):
         # Calculate training size (m) and the feature size (n)
         m,n = X.shape
 
@@ -85,20 +85,21 @@ class NeuralNetwork:
             for batch in NeuralNetwork.iterate_batches(X, y, batch_size):
                 X_batch, y_batch = batch
                 activations = self.forward_prop(X_batch)
-                grads = self.backprop(activations, y_batch)
+                grads = self.backprop(activations, y_batch, regularization_weight)
                 self.update_theta(grads, learning_rate)
 
                 # Append cost of this iteration to list
-                costs.append(self.cost(X_batch, y_batch))
+                costs.append(self.cost(X_batch, y_batch, regularization_weight))
 
             if grad_check:
                 activations = self.forward_prop(X)
-                grads = self.backprop(activations, y)
-                grads_approx = self.check_gradient(X, y, (1,0,0))
+                grads = self.backprop(activations, y, regularization_weight)
+                grads_approx = self.check_gradient(X, y, regularization_weight, (1,0,0))
                 print("Grad approx: " + str(grads_approx))
                 print("Your grad: " + str(grads))
 
-            self.display()
+            if view:
+                self.display()
 
         return costs
 
@@ -116,7 +117,7 @@ class NeuralNetwork:
         return activations
 
     # Function that performs backwards propagation
-    def backprop(self, activations, y):
+    def backprop(self, activations, y, regularization_weight):
         # Calculate delta of last layer
         delta = []
         # Calculate the amount of training examples
@@ -147,6 +148,11 @@ class NeuralNetwork:
         D = []
         for i in range(self.num_layers - 1):
             p_d_theta = self.layers[i].a.T.dot(delta[i]) / m
+            # Trim the gradient when the next layer has bias
+            if self.layers[i+1].has_bias:
+                p_d_theta = p_d_theta[:,1:]
+            # Add the regularization term to each layer
+            p_d_theta += regularization_weight * self.layers[i].get_regularization()
             D.append(p_d_theta)
         return D
 
@@ -177,17 +183,15 @@ class NeuralNetwork:
                 break
 
             layer_grad = grads[i]
-            if self.layers[i+1].has_bias:
-                layer_grad = layer_grad[:,1:]
             layer.theta += -1*learning_rate*layer_grad
 
     # TODO: Fix gradient checking algorithm
-    def check_gradient(self, X, y, idx, epsilon=0.0000001):
+    def check_gradient(self, X, y, idx, regularization_weight, epsilon=0.0000001):
         self.layers[idx[0]].theta[idx[1],idx[2]] -= epsilon
-        cost1 = self.cost(X, y)
+        cost1 = self.cost(X, y, regularization_weight)
 
         self.layers[idx[0]].theta[idx[1],idx[2]] += 2*epsilon
-        cost2 = self.cost(X, y)
+        cost2 = self.cost(X, y, regularization_weight)
 
         self.layers[idx[0]].theta[idx[1],idx[2]] += epsilon
         grad_approx = (cost2 - cost1)/(2*epsilon)
@@ -206,9 +210,14 @@ class NeuralNetwork:
     #                     yield lambda _: layer.get_theta_at_index(i, j), lambda y: layer.set_theta_at_index(i, j, y)
 
     # TODO: Clean up cost function
-    def cost(self, X, y):
+    def cost(self, X, y, regularization_weight):
         m = len(X) + 1
         cost = (-1/m)*np.sum(np.multiply(y, np.log(self.predict(X)) + np.multiply((1 - y), np.log(1 - self.predict(X)))))
+        regularization = 0
+        # Loop through layers to amass a regularization term
+        for layer in self.layers[:-1]:
+            regularization += np.sum((regularization_weight/(2*m))*(layer.get_regularization()**2))
+        cost += regularization
         return cost
 
     def display(self):

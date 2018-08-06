@@ -10,8 +10,11 @@ from matplotlib.colors import colorConverter, ListedColormap # some plotting fun
 import itertools
 import collections
 
-np.set_printoptions(precision=3)
+#np.set_printoptions(precision=3)
 
+#TODO: Fix gradient checking
+#TODO: Test on more training sets
+#TODO: Refactor and explain code better
 
 
 def main():
@@ -32,17 +35,15 @@ def main():
     # Creates neural network
     nn = NeuralNetwork()
 
-    #TODO: Add regularization term
-
     # Adds the layers to the neural network
     nn.add_layer(64, bias=True)
-    nn.add_layer(50, bias=True)
+    nn.add_layer(100, bias=True)
     nn.add_layer(50, bias=True)
     nn.add_layer(10, bias=False)
 
 
     # Trains the model
-    costs = nn.train(X_train, y_train, epochs=100, learning_rate=0.25, batch_size=10)
+    costs = nn.train(X_train, y_train, epochs=100, learning_rate=0.25, batch_size=10, regularization_weight=0.0005)
 
     # Predicts from the test set and calculates the accuracy
     predictions = nn.predict(X_test)
