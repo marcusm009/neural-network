@@ -9,23 +9,23 @@ import pickle
 
 class NeuralNetwork:
 
-    def __init__(self):
+    def __init__(self, initial_weight=0.1):
         self.layers = []
         self.num_layers = 0
         self.accuracy = 0
+        self.initial_weight = initial_weight
 
-    def add_layer(self, size, bias=True):
-        layer = Layer(self.num_layers, size, bias)
+    # Function for adding multiple layers at once
+    def add_layers(self, sizes, biases=None):
+        # If biases are not provided, it defaults to having biases in all layers, but the last
+        if biases is None:
+            # Set default bias scheme
+            biases = [True]*len(sizes)
+            biases[-1] = False
 
-        ### Initialize theta of the last layer ###
-        # Checks to see if there is a previous layer
-        if self.num_layers > 0:
-            # Uses information about new layer to initialize theta
-            self.layers[self.num_layers - 1].initialize_theta(layer.size)
-
-        ### Appends new layer ###
-        self.layers.append(layer)
-        self.num_layers += 1
+        # Adds the layers to the neural network
+        for size, bias in zip(sizes, biases):
+            self.add_layer(size, bias)
 
     # A wrapper function for forward_prop that returns only the activations
     # from the last layer
@@ -219,6 +219,20 @@ class NeuralNetwork:
             regularization += np.sum((regularization_weight/(2*m))*(layer.get_regularization()**2))
         cost += regularization
         return cost
+
+    # Function for adding an individual layer at a time
+    def add_layer(self, size, bias=True):
+        layer = Layer(self.num_layers, size, self.initial_weight, bias)
+
+        ### Initialize theta of the last layer ###
+        # Checks to see if there is a previous layer
+        if self.num_layers > 0:
+            # Uses information about new layer to initialize theta
+            self.layers[self.num_layers - 1].initialize_theta(layer.size)
+
+        ### Appends new layer ###
+        self.layers.append(layer)
+        self.num_layers += 1
 
     def display(self):
         print("="*20)

@@ -1,14 +1,13 @@
 import numpy as np
 
-INITIAL_WEIGHT = 0.1
-
 class Layer:
 
-    def __init__(self, layer_number, size, bias=True):
+    def __init__(self, layer_number, size, initial_weight, bias=True):
         self.layer_number = layer_number
         self.has_bias = bias
         self.size = size # The size of the non-bias neurons
         self.a = np.zeros(size)
+        self.initial_weight = initial_weight
 
     # An iterator to loop through all thetas (Unused)
     # def __iter__(self):
@@ -28,9 +27,9 @@ class Layer:
     def initialize_theta(self, size):
         self.next_size = size
         if self.has_bias:
-            self.theta = INITIAL_WEIGHT*np.random.rand(self.size + 1, self.next_size)
+            self.theta = self.initial_weight*np.random.rand(self.size + 1, self.next_size)
         else:
-            self.theta = INITIAL_WEIGHT*np.random.rand(self.size, self.next_size)
+            self.theta = self.initial_weight*np.random.rand(self.size, self.next_size)
 
     def fire(self):
 
@@ -83,6 +82,7 @@ class Layer:
     #     return self.theta[i,j]
 
     # Sigmoid and derivative of sigmoid functions for utility purposes
+
     def sigmoid(self, z):
         return 1 / (1 + np.exp(-z))
 
